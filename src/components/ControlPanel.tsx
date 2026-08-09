@@ -106,19 +106,37 @@ export function ControlPanel() {
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-wider">Pixelate Grid</label>
-          <input 
-            type="checkbox" 
-            checked={store.enablePixelate} 
-            onChange={(e) => store.setEnablePixelate(e.target.checked)}
-            className="accent-gray-800 w-3.5 h-3.5 cursor-pointer"
-          />
+          <label className="text-[10px] font-bold uppercase tracking-wider">Mosh Scatter</label>
+          <span className="text-[10px] font-mono opacity-70">{store.moshScatter.toFixed(2)}</span>
         </div>
         <input 
-          type="range" min="10" max="256" step="1" 
-          value={store.asciiGridSize} onChange={(e) => store.setAsciiGridSize(parseInt(e.target.value))}
-          className="accent-gray-800 h-1.5 bg-gray-400 rounded-full appearance-none"
-          disabled={!store.enablePixelate}
+          type="range" min="0" max="1" step="0.01" 
+          value={store.moshScatter} onChange={(e) => store.setMoshScatter(parseFloat(e.target.value))}
+          className="accent-red-600 h-1.5 bg-gray-700 rounded-full appearance-none"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-wider">Edge Glow (Sobel)</label>
+          <span className="text-[10px] font-mono opacity-70">{store.edgeGlow.toFixed(2)}</span>
+        </div>
+        <input 
+          type="range" min="0" max="1" step="0.01" 
+          value={store.edgeGlow} onChange={(e) => store.setEdgeGlow(parseFloat(e.target.value))}
+          className="accent-red-600 h-1.5 bg-gray-700 rounded-full appearance-none"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-wider">Chroma Shift</label>
+          <span className="text-[10px] font-mono opacity-70">{store.chromaShift.toFixed(2)}</span>
+        </div>
+        <input 
+          type="range" min="0" max="1" step="0.01" 
+          value={store.chromaShift} onChange={(e) => store.setChromaShift(parseFloat(e.target.value))}
+          className="accent-red-600 h-1.5 bg-gray-700 rounded-full appearance-none"
         />
       </div>
 
@@ -129,13 +147,23 @@ export function ControlPanel() {
             type="checkbox" 
             checked={store.enableAscii} 
             onChange={(e) => store.setEnableAscii(e.target.checked)}
-            className="accent-gray-800 w-3.5 h-3.5 cursor-pointer"
+            className="accent-red-600 w-3.5 h-3.5 cursor-pointer"
           />
         </div>
+        <div className="flex items-center justify-between mt-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Resolution</label>
+          <span className="text-[10px] font-mono opacity-50">{store.asciiGridSize}</span>
+        </div>
+        <input 
+          type="range" min="20" max="256" step="1" 
+          value={store.asciiGridSize} onChange={(e) => store.setAsciiGridSize(parseInt(e.target.value))}
+          className="accent-red-600 h-1.5 bg-gray-700 rounded-full appearance-none"
+          disabled={!store.enableAscii}
+        />
         <input 
           type="text" 
           value={store.customAscii} onChange={(e) => store.setCustomAscii(e.target.value)}
-          className="bg-gray-200 border-2 border-gray-400 px-2 py-1 font-mono text-gray-900 text-[11px] rounded focus:outline-none w-full shadow-inner"
+          className="bg-gray-800 border border-gray-600 px-2 py-1 font-mono text-gray-200 text-[11px] rounded focus:outline-none w-full shadow-inner mt-1"
           placeholder="Characters..."
           disabled={!store.enableAscii}
         />

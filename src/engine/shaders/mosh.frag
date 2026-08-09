@@ -7,13 +7,20 @@ out vec4 outColor;
 uniform sampler2D u_video;
 uniform sampler2D u_prevFrame;
 
+uniform float u_time;
 uniform float u_bass;
 uniform float u_highs;
+uniform vec2 u_resolution;
 uniform float u_moshDecay;
 uniform float u_moshThreshold;
-uniform float u_time;
-uniform vec2 u_resolution;
 uniform int u_enableMosh;
+uniform float u_moshScatter;
+uniform float u_edgeGlow;
+uniform float u_chromaShift;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
 
 void main() {
     vec4 currentFrame = texture(u_video, vUv);
@@ -22,41 +29,57 @@ void main() {
         outColor = currentFrame;
         return;
     }
+
+    // Simulate true Datamoshing by quantizing into "macroblocks" (like MPEG P-frames)
+    float blockSize = max(8.0 - (u_bass * 4.0), 4.0); // Finer pixelation
+    vec2 blocks = u_resolution / blockSize;
+    vec2 macroUv = floor(vUv * blocks) / blocks;
     
-    // Calculate a naive motion vector by comparing luminance difference
-    // A proper optical flow is too heavy for 4k real-time without a compute shader.
-    // We'll use a pragmatic difference thresholding approach.
-    vec4 prevFrame = texture(u_prevFrame, vUv);
+    vec4 macroFrame = texture(u_video, macroUv);
+    float macroLum = dot(macroFrame.rgb, vec3(0.299, 0.587, 0.114));
     
-    float lumCurr = dot(currentFrame.rgb, vec3(0.299, 0.587, 0.114));
-    float lumPrev = dot(prevFrame.rgb, vec3(0.299, 0.587, 0.114));
-    
-    float delta = abs(lumCurr - lumPrev);
-    
-    // When the bass hits the threshold, we trigger the "moshing"
-    // by offsetting the UV coordinates based on the delta.
     vec2 moshOffset = vec2(0.0);
     
-    if (u_bass > u_moshThreshold && delta > 0.05) {
-        // Bleed pixels along the gradient of the luminance
-        float dx = dFdx(lumCurr);
-        float dy = dFdy(lumCurr);
-        moshOffset = vec2(dx, dy) * (u_bass * 0.1);
+    // We use the color channels of the macroblock to simulate a P-frame motion vector.
+    // This creates the iconic blocky, tearing, dragging aesthetic of true datamoshing.
+    if (macroLum > u_moshThreshold) {
+        vec2 motionVec = (macroFrame.rg - 0.5) * 2.0;
+        moshOffset = motionVec * (u_bass * 0.04);
     }
     
+    // Apply scatter
+    if (u_moshScatter > 0.0) {
+        vec2 noiseVec = vec2(random(macroUv + u_time), random(macroUv - u_time)) - 0.5;
+        moshOffset -= noiseVec * u_moshScatter * u_bass * 0.05;
+    }
+
     vec2 sampledUv = vUv - moshOffset;
-    
-    // Keep it clamped to prevent edge bleeding artifacts
     sampledUv = clamp(sampledUv, 0.0, 1.0);
     
-    vec4 moshedPrev = texture(u_prevFrame, sampledUv);
+    // Look up the smeared pixels from the PREVIOUS frame
+    vec4 prevFrame = texture(u_prevFrame, sampledUv);
     
-    // Combine current and previous frame. 
-    // High decay = image freezes/trails. Low decay = normal video.
-    // If audio spikes, we force inject the new frame to prevent complete mud.
+    // Mix current frame and smeared frame based on audio spikes (I-Frame injection)
     float mixFactor = mix(0.1, u_moshDecay, smoothstep(0.8, 1.0, 1.0 - u_highs));
+    vec4 moshedColor = mix(currentFrame, prevFrame, mixFactor);
     
-    vec4 finalColor = mix(currentFrame, moshedPrev, mixFactor);
+    // Chromatic Aberration
+    if (u_chromaShift > 0.0) {
+        float shift = u_chromaShift * u_bass * 0.02;
+        float r = texture(u_prevFrame, sampledUv + vec2(shift, 0.0)).r;
+        float b = texture(u_prevFrame, sampledUv - vec2(shift, 0.0)).b;
+        moshedColor.r = mix(moshedColor.r, r, mixFactor);
+        moshedColor.b = mix(moshedColor.b, b, mixFactor);
+    }
     
-    outColor = finalColor;
+    // Edge Glow
+    if (u_edgeGlow > 0.0) {
+        vec2 texel = 1.0 / u_resolution;
+        vec4 cx = texture(u_prevFrame, sampledUv + vec2(texel.x, 0.0)) - texture(u_prevFrame, sampledUv - vec2(texel.x, 0.0));
+        vec4 cy = texture(u_prevFrame, sampledUv + vec2(0.0, texel.y)) - texture(u_prevFrame, sampledUv - vec2(0.0, texel.y));
+        float edge = length(cx) + length(cy);
+        moshedColor.rgb += vec3(edge) * u_edgeGlow * u_highs * 3.0;
+    }
+
+    outColor = moshedColor;
 }

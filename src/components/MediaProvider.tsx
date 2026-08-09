@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { audioAnalyzer } from '../engine/audio/AudioAnalyzer'
 import { useEngineStore } from '../store/useEngineStore'
-import { Play } from 'lucide-react'
+import { SplashBackground } from './SplashBackground'
 
 // Use Vite's glob import to find any .mp4 files in the public directory at build time
 const publicMp4s = import.meta.glob('/public/*.mp4', { eager: true })
@@ -14,43 +14,45 @@ const DEFAULT_VIDEO_URL = AUTO_LOCAL_VIDEO_URL || 'http://commondatastorage.goog
 
 export function MediaProvider() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  
   const mediaUrl = useEngineStore((s) => s.mediaUrl)
-  const setIsAudioUnlocked = useEngineStore((s) => s.setIsAudioUnlocked)
-  const isAudioUnlocked = useEngineStore((s) => s.isAudioUnlocked)
+  const setMediaUrl = useEngineStore((s) => s.setMediaUrl)
   
   const isPlaying = useEngineStore((s) => s.isPlaying)
   const setIsPlaying = useEngineStore((s) => s.setIsPlaying)
   
+  const isAudioUnlocked = useEngineStore((s) => s.isAudioUnlocked)
+  const setIsAudioUnlocked = useEngineStore((s) => s.setIsAudioUnlocked)
+  
   const [showSplash, setShowSplash] = useState(true)
 
   useEffect(() => {
-    // If the user changed the URL, update the source
-    if (videoRef.current && mediaUrl) {
-      videoRef.current.src = mediaUrl
-      if (isPlaying) videoRef.current.play().catch(console.error)
+    // If no mediaUrl, use default fallback
+    if (!mediaUrl) {
+      setMediaUrl(DEFAULT_VIDEO_URL)
     }
-  }, [mediaUrl])
+  }, [mediaUrl, setMediaUrl])
 
   useEffect(() => {
-    if (!videoRef.current || !isAudioUnlocked) return
-    if (isPlaying) {
-      videoRef.current.play().catch(console.error)
-    } else {
-      videoRef.current.pause()
+    if (videoRef.current) {
+      videoRef.current.src = mediaUrl || ''
+      if (isPlaying && isAudioUnlocked) {
+        videoRef.current.play().catch(console.error)
+      } else {
+        videoRef.current.pause()
+      }
     }
-  }, [isPlaying, isAudioUnlocked])
+  }, [mediaUrl, isPlaying, isAudioUnlocked])
 
-  const unlockAudio = async () => {
+  const handleStart = async () => {
     if (!videoRef.current) return
     
     try {
-      // Browser autoplay policies dictate this must happen on a user interaction
       audioAnalyzer.init(videoRef.current)
       audioAnalyzer.resume()
       
-      // Start the default video
       videoRef.current.src = mediaUrl || DEFAULT_VIDEO_URL
-      videoRef.current.crossOrigin = "anonymous" // Crucial for WebGL texImage2D
+      videoRef.current.crossOrigin = "anonymous"
       videoRef.current.loop = true
       
       await videoRef.current.play()
@@ -60,7 +62,7 @@ export function MediaProvider() {
       setShowSplash(false)
     } catch (err) {
       console.error('Failed to unlock audio context:', err)
-      alert("Failed to play video. If using a custom URL, ensure it supports CORS.")
+      alert("Failed to play video.")
     }
   }
 
@@ -75,20 +77,20 @@ export function MediaProvider() {
       />
       
       {showSplash && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-6 p-8 border border-[#262626] bg-[#141414] rounded-lg shadow-2xl">
-            <h1 className="text-2xl font-bold tracking-widest text-white">AVIZUAL DAW</h1>
-            <p className="text-sm text-gray-400 max-w-sm text-center">
-              Real-time ASCII datamosh synthesis driven by Web Audio FFT. 
-              <br/><br/>
-              just click
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050506]">
+          <SplashBackground />
+          <div className="relative z-10 metal-panel p-12 rounded-2xl flex flex-col items-center gap-6 max-w-md text-center">
+            <h1 className="text-4xl font-black uppercase tracking-widest bg-gradient-to-br from-red-500 via-gray-300 to-gray-500 bg-clip-text text-transparent drop-shadow-lg">
+              aVizual
+            </h1>
+            <p className="text-sm text-gray-300 tracking-wide">
+              Real-time GLSL audio-reactive visualizer engine.
             </p>
-            <button
-              onClick={unlockAudio}
-              className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold uppercase tracking-wider rounded hover:bg-gray-200 transition-colors"
+            <button 
+              onClick={handleStart}
+              className="mt-4 px-10 py-4 metal-button text-sm font-bold uppercase tracking-widest rounded-lg transition-transform"
             >
-              <Play size={18} />
-              Engage Synthesis
+              Initialize Engine
             </button>
           </div>
         </div>

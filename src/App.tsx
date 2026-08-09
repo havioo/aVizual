@@ -12,16 +12,20 @@ function App() {
       <MediaProvider />
       
       {/* Liquid Metal Player Container */}
-      <div className="relative w-full max-w-5xl aspect-video liquid-metal rounded-xl flex flex-col overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.9)]">
+      <div className="relative w-full max-w-5xl aspect-video rounded-xl flex flex-col overflow-visible shadow-[0_20px_50px_rgba(0,0,0,0.9)] ring-1 ring-white/10 group">
         
         {/* Canvas Area */}
-        <div className="flex-1 relative bg-black rounded-t-xl overflow-hidden border-b border-[#222]">
+        <div className="flex-1 relative bg-black rounded-xl overflow-hidden">
           <Viewport />
+          
+          {/* Media Controls Bottom Bar (Fades in on hover) */}
+          {isAudioUnlocked && (
+            <div className="absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out">
+              <PlayerControls />
+            </div>
+          )}
         </div>
 
-        {/* Media Controls Bottom Bar */}
-        {isAudioUnlocked && <PlayerControls />}
-        
         {/* Parameter Panel attached to the right side */}
         {isAudioUnlocked && (
           <div className="absolute top-4 -right-[340px]">

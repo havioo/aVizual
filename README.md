@@ -6,15 +6,40 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)](https://www.khronos.org/webgl/)
 
-**aVizual** is a high-performance, real-time video and audio Digital Audio Workstation (DAW) designed for the browser. It ingests video and audio input and applies real-time GLSL video processing, including synchronized datamoshing, pixel restructuring, and dynamic ASCII rendering—all driven by live Web Audio API spectral data.
+**aVizual** is a high-performance, real-time video and audio Digital Audio Workstation (DAW) designed for the browser. It ingests video and audio input and applies real-time GLSL video processing, including synchronized datamoshing, true P-frame motion simulation, edge detection, and dynamic ASCII rendering—all driven by live Web Audio API spectral data.
 
 ## Architecture
 
-The engine is built on a highly optimized, dual-pass WebGL pipeline:
-1. **Pass 1: Datamosh Filter**. Uses a ping-pong framebuffer to smear motion vectors across the screen based on high/low audio frequencies.
-2. **Pass 2: Pixelate & ASCII Remap**. Uses a dynamic 2D canvas texture atlas to map the moshed texture's luminance directly to literal, user-defined ASCII characters in real-time.
+The engine is built on a highly optimized, dual-pass WebGL pipeline leveraging custom GLSL fragment shaders:
 
-State management is handled via **Zustand** outside of the React render loop to guarantee 60FPS WebGL performance without React thrashing.
+1. **Pass 1: Datamoshing & Corruptions (`mosh.frag`)**
+   - **MPEG P-Frame Simulation:** Utilizing classic digital datamosh techniques, the video is quantized into dynamic macroblocks (16x16 to 32x32 depending on bass intensity). It extracts raw color data from the video stream to simulate literal P-frame motion vectors. When the bass drops, it simulates dropping I-frames, causing pixels to endlessly drag and smear across the screen along their motion vectors.
+   - **Chroma Shift & Mosh Scatter:** Audio-reactive chromatic aberration splits the RGB channels laterally, while scatter noise introduces heavy chaotic jitter to the motion vectors.
+   - **Edge Glow:** A Sobel-like edge detection algorithm dynamically traces the sharp outlines of the smeared data, rendering intense edge highlights specifically on high-frequency audio spikes.
+
+2. **Pass 2: True-Color ASCII Remap (`ascii.frag`)**
+   - **Dynamic Texture Atlas:** The engine utilizes a hidden 2D canvas to dynamically draw a font atlas of the user's custom ASCII string.
+   - **Luminance Mapping:** The shader maps the luminance of the moshed texture directly to a character in the atlas. It normalizes the RGB values to preserve true, vivid colors even on pure white/black boundaries.
+
+State management is handled via **Zustand** outside of the React render loop to guarantee 60FPS WebGL performance.
+
+## Custom ASCII Mapping
+
+The **ASCII Remap** feature relies on a sequence of characters you type into the parameter menu. 
+
+The engine maps the **density** of the image (from darkest to brightest) from **left to right** across your string.
+- **Leftmost Characters**: Mapped to the darkest (black) areas of the video. Use sparse characters or spaces (e.g., ` `, `.`, `:`).
+- **Rightmost Characters**: Mapped to the brightest (white) areas of the video. Use thick, dense characters (e.g., `#`, `@`, `W`).
+
+**Example:**
+Typing ` .:*+oa&#@` means pure black becomes empty space ` `, mid-tones become `+` or `o`, and pure bright highlights become `@`.
+
+## Features
+
+- **Liquid Gunmetal UI:** A deeply stylized, professional gunmetal glassmorphic aesthetic built with TailwindCSS.
+- **Butter-Smooth Scrubber:** The video scrubber bypasses native DOM limitations, utilizing a perfect `requestAnimationFrame` loop synced directly to the `seeking` events of the video decoder for millisecond-accurate, stutter-free dragging.
+- **Audio-Reactive Datamoshing:** Authentic macroblock tearing and vector smearing that genuinely freezes and bleeds the video frame based on the spectral analysis of the audio track.
+- **Vibrant ASCII Engine:** Retains maximum color saturation during ASCII conversion, allowing for fully stylized, hyper-colorful text rendering.
 
 ## Quick Setup
 
@@ -34,11 +59,6 @@ Ensure you have Node.js installed.
    ```bash
    npm run build
    ```
-
-## Features
-- **Liquid Glass UI:** Draggable, translucent iOS-style control surfaces.
-- **True ASCII Atlas:** Type any sequence of characters into the params menu, and the shader instantly regenerates its texture atlas to use your exact symbols.
-- **Audio-Reactive Smearing:** Datamoshing decay thresholds react directly to bass and high frequencies.
 
 ---
 *Crafted for maximum visual distortion.*

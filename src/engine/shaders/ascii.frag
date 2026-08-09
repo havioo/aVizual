@@ -27,16 +27,9 @@ void main() {
     // Multiply the x-axis grid density by 2.0 so characters don't get stretched horizontally!
     vec2 gridCount = vec2(u_gridSize * aspect * 2.0, u_gridSize);
     
-    vec2 gridUv;
-    vec2 localUv;
-
-    if (u_enablePixelate == 1) {
-        gridUv = floor(vUv * gridCount) / gridCount;
-        localUv = fract(vUv * gridCount);
-    } else {
-        gridUv = vUv;
-        localUv = vec2(0.5); 
-    }
+    // Always pixelate for the ASCII grid mapping
+    vec2 gridUv = floor(vUv * gridCount) / gridCount;
+    vec2 localUv = fract(vUv * gridCount);
     
     // Dynamic chromatic aberration driven by bass
     float caOffset = (u_bass * u_bass) * 0.02;
@@ -46,7 +39,8 @@ void main() {
     vec3 pixelColor = vec3(r, g, b);
 
     if (u_enableAscii == 0) {
-        outColor = vec4(pixelColor, 1.0);
+        // If ASCII is disabled, just show the direct un-pixelated video
+        outColor = texture(u_moshTexture, vUv);
         return;
     }
 
@@ -66,12 +60,13 @@ void main() {
     atlasUv.y = localUv.y;
     
     // The atlas is white text on black background, extract red channel as shape mask.
-    // We can use a sharp step to ensure crisp text if desired, but LINEAR filtering provides smooth edges.
     float shape = texture(u_asciiAtlas, atlasUv).r;
     
-    // Guarantee that the ASCII letters are always visible, even in dark areas.
-    vec3 brightColor = max(pixelColor, vec3(0.4)); 
+    // Retain true color and boost it so dark colorful pixels don't just become gray.
+    float maxChannel = max(pixelColor.r, max(pixelColor.g, pixelColor.b));
+    // Normalize color and boost intensity
+    vec3 vividColor = (pixelColor / (maxChannel + 0.001)) * max(maxChannel, 0.6);
     
     // Final composite: ASCII character over a pure black background so it is extremely distinct!
-    outColor = vec4(brightColor * shape, 1.0);
+    outColor = vec4(vividColor * shape, 1.0);
 }

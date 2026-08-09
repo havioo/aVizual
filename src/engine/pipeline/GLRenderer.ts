@@ -216,6 +216,9 @@ export class GLRenderer {
     gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_highs'), highs)
     gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_moshDecay'), state.moshDecay)
     gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_moshThreshold'), state.moshThreshold)
+    gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_moshScatter'), state.moshScatter)
+    gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_edgeGlow'), state.edgeGlow)
+    gl.uniform1f(gl.getUniformLocation(this.moshProgram, 'u_chromaShift'), state.chromaShift)
     gl.uniform1i(gl.getUniformLocation(this.moshProgram, 'u_enableMosh'), state.enableMosh ? 1 : 0)
     gl.uniform2f(gl.getUniformLocation(this.moshProgram, 'u_resolution'), this.canvas.width, this.canvas.height)
 
@@ -239,7 +242,6 @@ export class GLRenderer {
     gl.uniform1f(gl.getUniformLocation(this.asciiProgram, 'u_time'), time)
     gl.uniform1f(gl.getUniformLocation(this.asciiProgram, 'u_bass'), bass)
     gl.uniform1f(gl.getUniformLocation(this.asciiProgram, 'u_gridSize'), state.asciiGridSize)
-    gl.uniform1i(gl.getUniformLocation(this.asciiProgram, 'u_enablePixelate'), state.enablePixelate ? 1 : 0)
     gl.uniform1i(gl.getUniformLocation(this.asciiProgram, 'u_enableAscii'), state.enableAscii ? 1 : 0)
     
     // Pass custom ascii length to shader
