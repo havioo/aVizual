@@ -81,7 +81,7 @@ export function MediaProvider() {
             <p className="text-sm text-gray-400 max-w-sm text-center">
               Real-time ASCII datamosh synthesis driven by Web Audio FFT. 
               <br/><br/>
-              Interaction required to unlock AudioContext.
+              just click
             </p>
             <button
               onClick={unlockAudio}

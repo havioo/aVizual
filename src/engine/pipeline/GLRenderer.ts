@@ -81,7 +81,8 @@ export class GLRenderer {
   }
 
   private resize = () => {
-    const dpr = window.devicePixelRatio || 1
+    // Supersample for high-end GPUs to guarantee crisp datamosh edges
+    const dpr = Math.max(window.devicePixelRatio || 1, 2.0)
     const rect = this.canvas.parentElement?.getBoundingClientRect()
     if (!rect) return
     
@@ -156,24 +157,34 @@ export class GLRenderer {
     
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')!
-    const w = 32
-    const h = 64
+    
+    // High-res atlas for a 5090 Ti
+    const w = 64
+    const h = 128
     canvas.width = safeChars.length * w
     canvas.height = h
     
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.fillStyle = '#fff'
-    ctx.font = '48px monospace'
+    // Bold, crisp font
+    ctx.font = 'bold 96px monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     
     for (let i = 0; i < safeChars.length; i++) {
-      ctx.fillText(safeChars[i], i * w + w/2, h/2 + 4)
+      ctx.fillText(safeChars[i], i * w + w/2, h/2 + 8)
     }
     
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.asciiAtlasTexture)
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true)
+    
+    // Use LINEAR filtering for the high-res text atlas to make it extremely smooth and legible
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
+    
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas)
   }
 

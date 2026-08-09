@@ -135,7 +135,7 @@ export function ControlPanel() {
         <input 
           type="text" 
           value={store.customAscii} onChange={(e) => store.setCustomAscii(e.target.value)}
-          className="bg-gray-200 border-2 border-gray-400 px-2 py-1 font-mono text-[11px] rounded focus:outline-none w-full shadow-inner"
+          className="bg-gray-200 border-2 border-gray-400 px-2 py-1 font-mono text-gray-900 text-[11px] rounded focus:outline-none w-full shadow-inner"
           placeholder="Characters..."
           disabled={!store.enableAscii}
         />

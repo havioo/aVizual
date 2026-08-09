@@ -23,7 +23,9 @@ void main() {
     // Phase 2: Pixel Restructuring & Downsampling
     // Snap UVs to discrete grid cells based on aspect ratio
     float aspect = u_resolution.x / u_resolution.y;
-    vec2 gridCount = vec2(u_gridSize * aspect, u_gridSize);
+    // Our font atlas cells are 64x128 (width is half of height).
+    // Multiply the x-axis grid density by 2.0 so characters don't get stretched horizontally!
+    vec2 gridCount = vec2(u_gridSize * aspect * 2.0, u_gridSize);
     
     vec2 gridUv;
     vec2 localUv;
@@ -59,15 +61,17 @@ void main() {
     float charIndex = floor(luminance * (u_charCount - 1.0));
     
     // Sample from the literal ASCII texture atlas.
-    // The atlas contains `u_charCount` characters arranged horizontally.
-    // We map localUv.x into the horizontal slice for `charIndex`.
     vec2 atlasUv;
     atlasUv.x = (charIndex + localUv.x) / u_charCount;
     atlasUv.y = localUv.y;
     
-    // The atlas is white text on black background, we extract the red channel.
+    // The atlas is white text on black background, extract red channel as shape mask.
+    // We can use a sharp step to ensure crisp text if desired, but LINEAR filtering provides smooth edges.
     float shape = texture(u_asciiAtlas, atlasUv).r;
     
-    // Final composite: tint the ASCII character with the original moshed color
-    outColor = vec4(pixelColor * shape * 1.5, 1.0);
+    // Guarantee that the ASCII letters are always visible, even in dark areas.
+    vec3 brightColor = max(pixelColor, vec3(0.4)); 
+    
+    // Final composite: ASCII character over a pure black background so it is extremely distinct!
+    outColor = vec4(brightColor * shape, 1.0);
 }
